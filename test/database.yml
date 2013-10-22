@@ -1,0 +1,6 @@
+test:
+  sessions:
+    default:
+      database: rev_state_test_suite
+      hosts:
+        - localhost:27017

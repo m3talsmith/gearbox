@@ -7,10 +7,8 @@ module RevState
     collection.send :field, :some_field_name
   end
 
-  mattr_accessor :config
-
   self.config = {
-    #Put library configs here.
+    #Put library configs here. Or not.
   }
 
   def some_mixin_method

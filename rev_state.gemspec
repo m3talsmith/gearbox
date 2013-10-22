@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.summary     = 'A state machine for Mongoid by the nice folks at RevSpring Inc.'
   s.date        = '2013-10-21'
   s.description = 'Mixin that provides state machine support for Mongoid documents'
-  s.authors     = ['Rick Carlino', 'Brett Byler', 'Michael Cristensen']
+  s.authors     = ['Rick Carlino', 'Brett Byler', 'Michael Cristenson']
   s.license     = 'Private Use'
   s.email       = 'webview@revspringinc.com'
   s.homepage    = 'https://github.com/RevSpringPhoenix/revstate'

@@ -10,7 +10,6 @@ class Car
   include Mongoid::Document
   include Gearbox
   
-
   gearbox start_state: :parked do
     state :parked do
       transition to: :ignite if brake? && clutch?

@@ -10,6 +10,14 @@ class GearboxTest < Test::Unit::TestCase
     Car.destroy_all
   end
 
+  def test_car_has_state_options
+    assert Car.state_options
+  end
+
+  def test_car_has_start_state_of_parked
+    assert_equal :parked, Car.state_options[:start_state]
+  end
+
   def test_car_parked
     assert_equal :parked, @f1.state
   end

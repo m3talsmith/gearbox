@@ -1,29 +1,22 @@
 require 'mongoid'
 
 module Gearbox
-
-  def self.included(collection)
-    collection.send :field, :state
-    self.send :include, Gearbox::IncludedMethods
-    self.send :extend,  Gearbox::ClassMethods
-  end
-
-  module IncludedMethods
-    def state states
-    end
-
-    def transition options
+  class << self
+    def included(base)
+      base.extend Gearbox::ClassMethods
+      base.send   :field, :state
+      base.class_eval %(
+        class << self
+          attr_accessor :state_options
+          @state_options = {}
+        end
+      )
     end
   end
 
   module ClassMethods
-    def gearbox options
+    def gearbox options={}
+      self.state_options ||= options
     end
   end
-protected
-  
-  def some_support_method
-    'Private methods can go here and they wont pollute the target document with irrelevant methods.'
-  end
-
 end

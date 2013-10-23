@@ -19,7 +19,7 @@ class GearboxTest < Test::Unit::TestCase
   end
 
   def test_car_parked
-    assert_equal :parked, @f1.state
+    assert_equal :parked, @f1.current_state
   end
 
   def test_turn_on_car

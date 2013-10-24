@@ -1,23 +1,25 @@
 class Car
   include Mongoid::Document
   include Gearbox
+
+  attr_accessor :brake_pressed, :clutch_pressed
   
   gearbox start_state: :parked do
     state :parked do
-      transition to: :ignite if brake? && clutch?
+      transition to: :ignite
     end
     
-    state :ignite do
+    state :ignite, 'self.brake_pressed && self.clutch_pressed' do
       transition to: :idling
     end
     
     state :idling do
-      transition to: :first_gear if clutch?
+      transition to: :first_gear
     end
     
     state [:first, :second, :third, :fourth] do
-      transition to: next_state     if clutch?
-      transition to: previous_state if clutch?
+      transition to: next_state
+      transition to: previous_state
     end
     
     state :park do
@@ -33,12 +35,12 @@ class Car
   end
   
   def brake
-    # press down brake
+    self.brake_pressed = true
     return true
   end
   
   def clutch
-    # press down clutch
+    self.clutch_pressed = true
     return true
   end
   

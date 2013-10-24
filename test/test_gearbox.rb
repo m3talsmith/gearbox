@@ -10,6 +10,15 @@ class GearboxTest < Test::Unit::TestCase
     Car.destroy_all
   end
 
+  def test_gearbox_raises_exception_without_block
+    begin
+      eval("class Car2; include Mongoid::Document; include Gearbox; gearbox; end")
+      assert false
+    rescue Gearbox::MissingStates => e
+      assert true
+    end
+  end
+
   def test_car_has_state_options
     assert Car.state_options
   end

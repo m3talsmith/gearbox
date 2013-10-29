@@ -1,17 +1,18 @@
 require 'mongoid'
-
+#Feel free to delete this line if I forgot to do so- was doing some intense debugging. RC
+require 'pry'
 module Gearbox
   class << self
     def included(base)
-      base.extend         Gearbox::ClassMethods
       base.send :include, Gearbox::InstanceMethods
       base.send :field, :state
+
       base.class_eval %(
         class << self
-          attr_accessor :state_options
-          @state_options = {}
+          attr_accessor :state_options, :state_triggers, :state_callbacks
         end
       )
+      base.extend Gearbox::ClassMethods
     end
   end
 
@@ -96,42 +97,71 @@ module Gearbox
 
     # == Class#state
     #
-    # state receives either a symbol or an array of symbols and sends each state to an instance method that may be called. 
+    # Takes one or multiple symbols (as symbol array) and stores the block as an intance method named after the state.
+    # Takes an optional second argument of `if: method_name` where method_name is a predefined boolean instance method.
     #
     # -- Examples
-    #
+    # # Second parameter is optional.
     # state :parked do
-    #   transition_to :ignite if brake_pressed && clutch_pressed
+    #   transition_to :ignite, if: :safe_to_ignite?
     # end
+    # 
+    # # self.responds_to(:park) == true
     #
     # state [:first, :second, :third, :fourth] do
+    #   5.times{ honk! }
     #   transition_to :next_state     if clutch_pressed
     #   transition_to :previous_state if clutch_pressed
-    # end  
-    def state states, trigger=nil, &callback
+    # end
+    #
+    # def safe_to_ignite?
+    #   brake_pressed && clutch_pressed
+    # end
+    def state(states, triggers=nil, &callback)
       raise Gearbox::MissingStateBlock unless block_given?
-
+      
       states = [states] unless states.respond_to?(:each)
+      triggers ||= {}
+
+      # == State triggers and callbacks
+      #
+      # Sets up class variables to store state triggers and callbacks ini order to call them later from an instance method which has the name of the state.
+      #
+      # === Examples
+      #
+      # gearbox do
+      #   state :ignite, if: :can_ignite? do
+      #     2.times {print 'Honk!'}
+      #     transition to: :zoom_zoom
+      #   end
+      #
+      #   state :zoom_zoom do
+      #     puts "Heading home"
+      #   end
+      # end
+      #
+      # def can_ignite?
+      #   return true
+      # end
+      @state_triggers  ||= {}
+      @state_callbacks ||= {}
+
       states.each do |state_name|
-        if trigger
-          @methods = <<-END
-            def #{state_name}
-              if instance_eval("#{trigger}")
-                #{callback}.call
-              else
-                self.state_errors << 'Cannot trigger :#{state_name} state because conditions did not evaluate to true'
-              end
+        ### stores triggers and call backs for later usage in the below instance method being defined.
+        @state_triggers[state_name.to_sym]  = triggers[:if]
+        @state_callbacks[state_name.to_sym] = callback
+        class_eval <<-OOM
+          def #{state_name}
+            trigger = self.class.state_triggers[:#{state_name}]
+            callback = self.class.state_callbacks[:#{state_name}]
+
+            if trigger && self.send(trigger)
+              callback.call
+            else
+              state_errors.push('Cannot trigger :#{state_name} state because conditions did not evaluate to true')
             end
-          END
-        else
-          @methods = <<-END
-            def #{state_name}
-              yield
-            end
-          END
-        end
-        puts @methods
-        class_eval @methods
+          end
+        OOM
       end
     end
 
@@ -164,5 +194,4 @@ module Gearbox
       @gearbox_state_errors << "Cannot transition to the #{self.states} state from the #{self.current_state} state"
     end
   end
-
 end

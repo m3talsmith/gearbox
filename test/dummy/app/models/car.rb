@@ -9,7 +9,7 @@ class Car
       transition to: :ignite
     end
     
-    state :ignite, 'self.brake_pressed && self.clutch_pressed' do
+    state :ignite, if: :safe_to_ignite? do
       transition to: :idling
     end
     
@@ -54,4 +54,9 @@ class Car
     clutch
     ignite
   end
+
+  def safe_to_ignite?
+    self.brake_pressed && self.clutch_pressed
+  end
+
 end

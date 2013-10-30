@@ -11,31 +11,31 @@ A state machine that's made from ground up to automate state transitions.
     
     gearbox start_state: :parked do
       state :parked do
-        transition to: :ignite if brake? && clutch?
+        can_transition_to :ignite if brake? && clutch?
       end
       
       state :ignite do
-        transition to: :idling
+        can_transition_to :idling
       end
       
       state :idling do
-        transition to: :first_gear if clutch?
+        can_transition_to :first_gear if clutch?
       end
       
       state [:first, :second, :third, :fourth] do
-        transition to: next_state     if clutch?
-        transition to: previous_state if clutch?
+        can_transition_to next_state     if clutch?
+        can_transition_to previous_state if clutch?
       end
       
       state :park do
-        transition to: :parking
+        can_transition_to :parking
       end
       
       state :parking do
         brake
         clutch
         turn_off
-        transition to: :parked
+        can_transition_to :parked
       end
     end
     

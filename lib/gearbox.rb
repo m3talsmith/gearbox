@@ -35,6 +35,7 @@ module Gearbox
       self.state = start_state unless self.state
       self.state
     end
+
   end
 
   module ClassMethods
@@ -49,11 +50,11 @@ module Gearbox
     #
     #     gearbox start_state: :parked do
     #       state :parked do
-    #         transition to: :ignite
+    #         can_transition_to :ignite
     #       end
     #
     #       state :ignite do
-    #         transition to: :idling if brake? and clutch?
+    #         can_transition_to :idling if brake? and clutch?
     #       end
     #
     #       state :idling do
@@ -95,6 +96,19 @@ module Gearbox
       yield
     end
 
+    # Used within a +state+ block to designate allowed transition states.
+    #  -- Examples
+    #   state :on do
+    #     can_transition_to :off
+    #   end
+    def can_transition_to(allowed_state)
+      @__pass_state_options_to_transition.each do |state_name|
+        self.state_options[state_name] ||= []
+        self.state_options[state_name] << allowed_state
+      end
+    end
+
+
     # == Class#state
     #
     # Takes one or multiple symbols (as symbol array) and stores the block as an intance method named after the state.
@@ -132,7 +146,7 @@ module Gearbox
       # gearbox do
       #   state :ignite, if: :can_ignite? do
       #     2.times {print 'Honk!'}
-      #     transition to: :zoom_zoom
+      #     can_transition_to :zoom_zoom
       #   end
       #
       #   state :zoom_zoom do
@@ -145,6 +159,26 @@ module Gearbox
       # end
       @state_triggers  ||= {}
       @state_callbacks ||= {}
+
+
+      # DANGER DANGER WARNING!!
+      #
+      #
+      # =!=!=!=!=!=!=!=!=
+      #
+      # This one requires refactoring. It's an inelegant hack that
+      # allows us to maintain scope of the state that we want to modify without
+      # needing to explicitly mention it by name when we do things like call
+      # method can_transition_to. I am a bit concerned because:
+      # 1. Using variables as flags is always sketchy in OOP.
+      # 2. If can_transition_to is ever called outside of a state block, there is a
+      #    potential to unintentionally modify the wrong state.
+      # 3. I don't think its thread safe. May need to implement mutex????
+      # 4. It probably will break if you define states after runtime.
+      # 5. It's not direct / specific to what its trying to do.
+      #
+      # HOW DO WE VALIDATE THAT A USER NEVER CALLS `can_transition_to` OUTSIDE OF A STATE() BLOCK?
+      @__pass_state_options_to_transition = states
 
       states.each do |state_name|
         ### stores triggers and call backs for later usage in the below instance method being defined.
@@ -159,22 +193,14 @@ module Gearbox
               callback.call
             else
               state_errors.push('Cannot trigger :#{state_name} state because conditions did not evaluate to true')
+              return false
             end
+            @state = #{state_name}
           end
         OOM
       end
     end
 
-    # == Class#transition_to
-    #
-    # transition_to receives a symbol of a desired next step and updates the current_step to the the next_step. Note that separate logic may govern whether or not this method is called
-    #
-    # -- Examples
-    #
-    # 
-    # def transition_to next_state
-    #   self.state = next_state.to_sym
-    # end
   end
 
   class MissingStates < Exception

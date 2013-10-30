@@ -6,31 +6,32 @@ class Car
   
   gearbox start_state: :parked do
     state :parked do
-      transition to: :ignite
+      can_transition_to :ignite
     end
     
     state :ignite, if: :safe_to_ignite? do
-      transition to: :idling
+      binding.pry
+      can_transition_to :idling
     end
     
     state :idling do
-      transition to: :first_gear
+      can_transition_to :first_gear
     end
     
     state [:first, :second, :third, :fourth] do
-      transition to: next_state
-      transition to: previous_state
+      can_transition_to next_state
+      can_transition_to previous_state
     end
     
     state :park do
-      transition to: :parking
+      can_transition_to :parking
     end
     
     state :parking do
       brake
       clutch
       turn_off
-      transition to: :parked
+      can_transition_to :parked
     end
   end
   
@@ -45,7 +46,7 @@ class Car
   end
   
   def turn_off
-    # turn of the key
+    # turn off the engine
     return true
   end
   

@@ -11,6 +11,7 @@ class GearboxTest < Test::Unit::TestCase
   end
 
   def test_gearbox_raises_exception_without_block
+    #REMINDER: You can't define a class in a block or method. This is how we get around that.
     class_def = %(
       class Car2
         include Mongoid::Document
@@ -25,7 +26,8 @@ class GearboxTest < Test::Unit::TestCase
     end
   end
 
-  def test_gearbox_raises_exception_without_block
+  def test_gearbox_raises_exception_without_params
+    #REMINDER: You can't define a class in a block or method. This is how we get around that.
     class_def = %(
       class Car3
         include Mongoid::Document
@@ -71,8 +73,11 @@ class GearboxTest < Test::Unit::TestCase
     @f1.ignite
     assert_send [@f1.state_errors, :include?, error_message]
     @f1.turn_on
-    assert_not_send [@f1.state_errors, :include?, error_message]
+    # Turn_on is there, but it doesn't get out of park...
+    #I think the ignite method is not modifying the state.
+    # binding.pry
     assert_equal :ignite, @f1.state
+    assert_not_send [@f1.state_errors, :include?, error_message]
   end
 
   def test_park_car

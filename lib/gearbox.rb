@@ -1,15 +1,13 @@
 require 'mongoid'
-#Feel free to delete this line if I forgot to do so- was doing some intense debugging. RC
 require 'pry'
 module Gearbox
   class << self
     def included(base)
       base.send :include, Gearbox::InstanceMethods
-      base.send :field, :state
 
       base.class_eval %(
         class << self
-          attr_accessor :state_options, :state_triggers, :state_callbacks
+          attr_accessor :state_options, :state_tree, :state_triggers, :state_callbacks
         end
       )
       base.extend Gearbox::ClassMethods
@@ -31,11 +29,13 @@ module Gearbox
       state_options[:start_state]
     end
 
-    def current_state
-      self.state = start_state unless self.state
-      self.state
+    def state_tree
+      self.class.state_tree
     end
 
+    def transition options
+      self.send options[:to]
+    end
   end
 
   module ClassMethods
@@ -43,23 +43,23 @@ module Gearbox
     #
     # gearbox takes a hash of options, and a block with states, setting up the class and instance injection for the state machine
     #
-    # -- Examples
+    # === Examples
     #
     #   class Car
     #     include Gearbox
     #
     #     gearbox start_state: :parked do
-    #       state :parked do
+    #       state :parked, callback: ->{
     #         transition :ignite
-    #       end
+    #       }
     #
-    #       state :ignite do
+    #       state :ignite, callback: ->{
     #         transition :idling if brake? and clutch?
-    #       end
+    #       }
     #
-    #       state :idling do
+    #       state :idling, callback: ->{
     #         return self.current_state
-    #       end
+    #       }
     #     end
     #
     #     def turn_on
@@ -69,7 +69,7 @@ module Gearbox
     #     end
     #   end
     #
-    # -- Results
+    # === Results
     #
     #   Car.state_options
     #   # => {start_state: :parked}
@@ -93,49 +93,41 @@ module Gearbox
     def gearbox options={}
       raise Gearbox::MissingStates unless block_given?
       self.state_options ||= options
+      self.send :field, :state, default: options[:start_state]
       yield
     end
-
-    # Used within a +state+ block to designate allowed transition states.
-    #  -- Examples
-    #   state :on do
-    #     transition :off
-    #   end
-    def transition(allowed_state)
-      @__pass_state_options_to_transition.each do |state_name|
-        self.state_options[state_name] ||= []
-        self.state_options[state_name] << allowed_state
-      end
-    end
-
 
     # == Class#state
     #
     # Takes one or multiple symbols (as symbol array) and stores the block as an intance method named after the state.
     # Takes an optional second argument of `if: method_name` where method_name is a predefined boolean instance method.
     #
-    # -- Examples
+    # === Examples
     # # Second parameter is optional.
-    # state :parked do
-    #   transition_to :ignite, if: :safe_to_ignite?
-    # end
+    # state :parked, callback: ->{
+    #   def callback
+    #     transition_to :ignite, if: :safe_to_ignite?
+    #   end
+    # }
     # 
     # # self.responds_to(:park) == true
     #
-    # state [:first, :second, :third, :fourth] do
-    #   5.times{ honk! }
-    #   transition_to :next_state     if clutch_pressed
-    #   transition_to :previous_state if clutch_pressed
-    # end
+    # state [:first, :second, :third, :fourth], callback: ->{
+    #   def callback
+    #     5.times{ honk! }
+    #     transition to: :next_state     if clutch_pressed
+    #     transition to: :previous_state if clutch_pressed
+    #   end
+    # }
     #
     # def safe_to_ignite?
     #   brake_pressed && clutch_pressed
     # end
-    def state(states, triggers=nil, &callback)
-      raise Gearbox::MissingStateBlock unless block_given?
+    def state(states, options={})
+      raise Gearbox::MissingStateBlock unless options[:callback]
       
-      states = [states] unless states.respond_to?(:each)
-      triggers ||= {}
+      states   = [states] unless states.respond_to?(:each)
+      callback = options[:callback]
 
       # == State triggers and callbacks
       #
@@ -144,58 +136,42 @@ module Gearbox
       # === Examples
       #
       # gearbox do
-      #   state :ignite, if: :can_ignite? do
+      #   state :ignite, if: :can_ignite?, callback: ->{
       #     2.times {print 'Honk!'}
       #     transition :zoom_zoom
-      #   end
+      #   }
       #
-      #   state :zoom_zoom do
+      #   state :zoom_zoom, callback: ->{
       #     puts "Heading home"
-      #   end
+      #   }
       # end
       #
       # def can_ignite?
       #   return true
       # end
+      @state_tree      ||= {}
       @state_triggers  ||= {}
       @state_callbacks ||= {}
 
-
-      # DANGER DANGER WARNING!!
-      #
-      #
-      # =!=!=!=!=!=!=!=!=
-      #
-      # This one requires refactoring. It's an inelegant hack that
-      # allows us to maintain scope of the state that we want to modify without
-      # needing to explicitly mention it by name when we do things like call
-      # method transition. I am a bit concerned because:
-      # 1. Using variables as flags is always sketchy in OOP.
-      # 2. If transition is ever called outside of a state block, there is a
-      #    potential to unintentionally modify the wrong state.
-      # 3. I don't think its thread safe. May need to implement mutex????
-      # 4. It probably will break if you define states after runtime.
-      # 5. It's not direct / specific to what its trying to do.
-      #
-      # HOW DO WE VALIDATE THAT A USER NEVER CALLS `transition` OUTSIDE OF A STATE() BLOCK?
-      @__pass_state_options_to_transition = states
-
       states.each do |state_name|
-        ### stores triggers and call backs for later usage in the below instance method being defined.
-        @state_triggers[state_name.to_sym]  = triggers[:if]
+        ### Stores triggers and call backs for later usage in the below instance method being defined.
+        @state_tree[state_name.to_sym]      = state_name
+        @state_triggers[state_name.to_sym]  = options[:if]
         @state_callbacks[state_name.to_sym] = callback
         class_eval <<-OOM
           def #{state_name}
-            trigger = self.class.state_triggers[:#{state_name}]
-            callback = self.class.state_callbacks[:#{state_name}]
+            trigger       = self.class.state_triggers[:#{state_name}]
+            callback      = self.class.state_callbacks[:#{state_name}]
+            error_message = 'Cannot trigger :#{state_name} state because conditions did not evaluate to true'
 
             if trigger && self.send(trigger)
+              state_errors.delete(error_message)
+              self.state = :#{state_name} and self.save
               callback.call
+              self.callback
             else
-              state_errors.push('Cannot trigger :#{state_name} state because conditions did not evaluate to true')
-              return false
+              state_errors.push(error_message)
             end
-            @state = #{state_name}
           end
         OOM
       end

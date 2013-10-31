@@ -1,42 +1,56 @@
-== Gearbox
+= Gearbox
 
 A state machine that's made from ground up to automate state transitions.
 
 
--- Examples:
+== Examples:
 
   class F1 < Car
     include Mongoid::Document
     include Gearbox
+
+    attr_accessor :clutch_pressed, :brake_pressed, :shifted_up, :shifted_down
     
     gearbox start_state: :parked do
-      state :parked do
-        transition :ignite if brake? && clutch?
-      end
+      state :parked, callback: ->{
+        def callback
+          transition to: :ignite
+        end
+      }
       
-      state :ignite do
-        transition :idling
-      end
+      state :ignite, if: :safe_to_ignite?, callback: ->{
+        def callback
+          transition to: :idling
+        end
+      }
       
-      state :idling do
-        transition :first_gear if clutch?
-      end
+      state :idling, if: :is_running?, callback: ->{
+        def callback
+          transition to: :first_gear if: :clutch_is_down?
+        end
+      }
       
-      state [:first, :second, :third, :fourth] do
-        transition next_state     if clutch?
-        transition previous_state if clutch?
-      end
+      state [:first, :second, :third, :fourth], if: :is_running?, callback: ->{
+        def callback
+          transition to: next_state,     if: :shifted_up?
+          transition to: previous_state, if: :shifted_down?
+        end
+      }
       
-      state :park do
-        transition :parking
-      end
+      state :park, callback: ->{
+        def callback
+          transition to: :parking
+        end
+      }
       
-      state :parking do
-        brake
-        clutch
-        turn_off
-        transition :parked
-      end
+      state :parking, callback: ->{
+        def callback
+          brake
+          clutch
+          turn_off
+          final_state :parked
+        end
+      }
     end
     
     def brake
@@ -45,6 +59,14 @@ A state machine that's made from ground up to automate state transitions.
     
     def clutch
       # press down clutch
+    end
+
+    def shift_up
+      self.shifted_up = true
+    end
+
+    def shift_down
+      self.shifted_down = true
     end
     
     def turn_off

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'gearbox'
-  s.version     = '0.0.1'
+  s.version     = '0.0.2'
   s.summary     = 'A state machine that is made from ground up to automate state transitions'
   s.date        = '2013-10-21'
   s.description = 'A state machine that is made from ground up to automate state transitions'
@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'bson_ext'
   s.add_development_dependency 'mongo'
   s.add_development_dependency 'pry'
+  s.add_development_dependency 'pry-nav'
   s.add_development_dependency 'mongoid'
   s.add_development_dependency 'sdoc'
 end

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gearbox (0.0.1)
+    gearbox (0.0.2)
       bson_ext
       mongo
       mongoid
@@ -37,6 +37,8 @@ GEM
       coderay (~> 1.0.5)
       method_source (~> 0.8)
       slop (~> 3.4)
+    pry-nav (0.2.3)
+      pry (~> 0.9.10)
     rdoc (3.12.2)
       json (~> 1.4)
     sdoc (0.3.20)
@@ -54,4 +56,5 @@ DEPENDENCIES
   mongo
   mongoid
   pry
+  pry-nav
   sdoc

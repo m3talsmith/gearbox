@@ -5,34 +5,39 @@ class Car
   attr_accessor :brake_pressed, :clutch_pressed
   
   gearbox start_state: :parked do
-    state :parked do
-      transition :ignite
-    end
+    state :parked, callback: ->{
+      def callback
+        transition to: :ignite
+      end
+    }
     
-    state :ignite, if: :safe_to_ignite? do
-      binding.pry
-      transition :idling
-    end
+    state :ignite, if: :safe_to_ignite?, callback: ->{
+      def callback
+        puts "safe_to_ignite?: #{safe_to_ignite?}"
+        transition to: :idling
+      end
+    }
     
-    state :idling do
-      transition :first_gear
-    end
-    
-    state [:first, :second, :third, :fourth] do
-      transition next_state
-      transition previous_state
-    end
-    
-    state :park do
-      transition :parking
-    end
-    
-    state :parking do
-      brake
-      clutch
-      turn_off
-      transition :parked
-    end
+    state :idling, callback: ->{
+      def callback
+        puts 'idling'
+        # transition :first_gear
+      end
+    }
+
+    # state [:first, :second, :third, :fourth], callback: ->{
+    # }
+    # 
+    # state :park, callback: ->{
+    #   transition to: :parking
+    # }
+    # 
+    # state :parking, callback: ->{
+    #   brake
+    #   clutch
+    #   turn_off
+    #   transition to: :parked
+    # }
   end
   
   def brake
@@ -57,7 +62,8 @@ class Car
   end
 
   def safe_to_ignite?
-    self.brake_pressed && self.clutch_pressed
+    puts "[in_instance] state: #{self.state}"
+    return (self.brake_pressed && self.clutch_pressed) || false
   end
 
 end

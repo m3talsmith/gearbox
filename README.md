@@ -14,31 +14,31 @@ Examples:
     
     gearbox start_state: :parked do
       state :parked do
-        can_transition_to :ignite if brake? && clutch?
+        transition :ignite if brake? && clutch?
       end
       
       state :ignite do
-        can_transition_to :idling
+        transition :idling
       end
       
       state :idling do
-        can_transition_to :first_gear if clutch?
+        transition :first_gear if clutch?
       end
       
       state [:first, :second, :third, :fourth] do
-        can_transition_to next_state     if clutch?
-        can_transition_to previous_state if clutch?
+        transition next_state     if clutch?
+        transition previous_state if clutch?
       end
       
       state :park do
-        can_transition_to :parking
+        transition :parking
       end
       
       state :parking do
         brake
         clutch
         turn_off
-        can_transition_to :parked
+        transition :parked
       end
     end
     

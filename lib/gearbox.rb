@@ -50,11 +50,11 @@ module Gearbox
     #
     #     gearbox start_state: :parked do
     #       state :parked do
-    #         can_transition_to :ignite
+    #         transition :ignite
     #       end
     #
     #       state :ignite do
-    #         can_transition_to :idling if brake? and clutch?
+    #         transition :idling if brake? and clutch?
     #       end
     #
     #       state :idling do
@@ -99,9 +99,9 @@ module Gearbox
     # Used within a +state+ block to designate allowed transition states.
     #  -- Examples
     #   state :on do
-    #     can_transition_to :off
+    #     transition :off
     #   end
-    def can_transition_to(allowed_state)
+    def transition(allowed_state)
       @__pass_state_options_to_transition.each do |state_name|
         self.state_options[state_name] ||= []
         self.state_options[state_name] << allowed_state
@@ -146,7 +146,7 @@ module Gearbox
       # gearbox do
       #   state :ignite, if: :can_ignite? do
       #     2.times {print 'Honk!'}
-      #     can_transition_to :zoom_zoom
+      #     transition :zoom_zoom
       #   end
       #
       #   state :zoom_zoom do
@@ -169,15 +169,15 @@ module Gearbox
       # This one requires refactoring. It's an inelegant hack that
       # allows us to maintain scope of the state that we want to modify without
       # needing to explicitly mention it by name when we do things like call
-      # method can_transition_to. I am a bit concerned because:
+      # method transition. I am a bit concerned because:
       # 1. Using variables as flags is always sketchy in OOP.
-      # 2. If can_transition_to is ever called outside of a state block, there is a
+      # 2. If transition is ever called outside of a state block, there is a
       #    potential to unintentionally modify the wrong state.
       # 3. I don't think its thread safe. May need to implement mutex????
       # 4. It probably will break if you define states after runtime.
       # 5. It's not direct / specific to what its trying to do.
       #
-      # HOW DO WE VALIDATE THAT A USER NEVER CALLS `can_transition_to` OUTSIDE OF A STATE() BLOCK?
+      # HOW DO WE VALIDATE THAT A USER NEVER CALLS `transition` OUTSIDE OF A STATE() BLOCK?
       @__pass_state_options_to_transition = states
 
       states.each do |state_name|

@@ -1,5 +1,9 @@
 require 'spec_helper'
 
+def error_for_state(state)
+  return "Cannot trigger :#{state} state because conditions did not evaluate to true"
+end
+
 class GearboxTest < Test::Unit::TestCase
   
   def setup
@@ -69,15 +73,20 @@ class GearboxTest < Test::Unit::TestCase
   end
 
   def test_turn_on_car
-    error_message = 'Cannot trigger :ignite state because conditions did not evaluate to true'
     @f1.ignite
-    assert_send [@f1.state_errors, :include?, error_message]
+    assert_send [@f1.state_errors, :include?, error_for_state(:ignite)]
     @f1.turn_on
     assert_equal :ignite, @f1.state
-    assert_not_send [@f1.state_errors, :include?, error_message]
+    assert_not_send [@f1.state_errors, :include?, error_for_state(:ignite)]
   end
 
   def test_park_car
+    @f1.park
+    assert_send [@f1.state_errors, :include?, error_for_state(:park)]
+    @f1.turn_on
+    @f1.park
+    assert_equal :parked, @f1.state
+    assert_not_send [@f1.state_errors, :include?, error_for_state(:park)]
   end
 
   def test_shift_to_first_gear

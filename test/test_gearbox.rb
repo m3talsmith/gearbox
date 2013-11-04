@@ -76,8 +76,8 @@ class GearboxTest < Test::Unit::TestCase
     @f1.ignite
     assert_send [@f1.state_errors, :include?, error_for_state(:ignite)]
     @f1.turn_on
-    assert_equal :ignite, @f1.state
     assert_not_send [@f1.state_errors, :include?, error_for_state(:ignite)]
+    assert_equal :ignite, @f1.state
   end
 
   def test_park_car
@@ -85,8 +85,8 @@ class GearboxTest < Test::Unit::TestCase
     assert_send [@f1.state_errors, :include?, error_for_state(:park)]
     @f1.turn_on
     @f1.park
-    assert_equal :parked, @f1.state
     assert_not_send [@f1.state_errors, :include?, error_for_state(:park)]
+    assert_equal :parked, @f1.state
   end
 
   def test_shift_to_first_gear

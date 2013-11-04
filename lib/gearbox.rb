@@ -33,8 +33,17 @@ module Gearbox
       self.class.state_tree
     end
 
+    def set_state state_name
+      self.state = state_name
+      self.save
+    end
+
     def transition options
       self.send options[:to]
+    end
+
+    def final_state state_name
+      set_state state_name
     end
   end
 
@@ -164,13 +173,20 @@ module Gearbox
             callback      = self.class.state_callbacks[:#{state_name}]
             error_message = 'Cannot trigger :#{state_name} state because conditions did not evaluate to true'
 
-            if trigger && self.send(trigger)
+            if trigger
+              if self.send(trigger)
+                state_errors.delete(error_message)
+                set_state :#{state_name}
+                callback.call
+                self.callback
+              else
+                state_errors.push(error_message)
+              end
+            else
               state_errors.delete(error_message)
-              self.state = :#{state_name} and self.save
+              set_state :#{state_name}
               callback.call
               self.callback
-            else
-              state_errors.push(error_message)
             end
           end
         OOM
